@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String KEY_NAME = "name";
     private String image;
     private long start_time;
+    private ProgressDialog loading;
 
     RequestQueue queue;
     private boolean flag = false;
@@ -66,8 +67,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         buttonChoose = (Button) findViewById(R.id.buttonChoose);
         buttonUpload = (Button) findViewById(R.id.buttonUpload);
-
-        editTextName = (EditText) findViewById(R.id.editText);
 
         imageView  = (ImageView) findViewById(R.id.imageView);
 
@@ -105,54 +104,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void uploadImage(){
         //Showing the progress dialog
-        final ProgressDialog loading = ProgressDialog.show(this,"Uploading...","Please wait...",false,false);
-        StringRequest stringRequest = new StringRequest(Request.Method.POST,URL,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String s) {
-                        //Disimissing the progress dialog
-                        loading.dismiss();
-                        //Showing toast message of the response
-                        Log.e(TAG, "it took " + (System.currentTimeMillis() - start_time ) + " millisecs");
-                        Toast.makeText(MainActivity.this, "Response from server is " + s, Toast.LENGTH_LONG).show();
-
-//                        Log.e(TAG,"returned " + s.length());
-//                        Log.e(TAG,"sent " + image.length());
-
-//                        saveImage(s);
-//                        Toast.makeText(MainActivity.this, s , Toast.LENGTH_LONG).show();
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError volleyError) {
-                        //Dismissing the progress dialog
-                        loading.dismiss();
-
-                        //Showing toast
-//                        Toast.makeText(MainActivity.this, volleyError.getMessage().toString(), Toast.LENGTH_LONG).show();
-                        Toast.makeText(MainActivity.this,"something went wrong",Toast.LENGTH_SHORT).show();
-                    }
-                }){
+        loading = ProgressDialog.show(this,"Uploading...","Please wait...",false,false);
+        StringRequest stringRequest = new StringRequest(Request.Method.POST,URL,this,this){
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
                 //Converting Bitmap to String
                 image = getStringImage(bitmap);
 
 
-
-//                Log.e(TAG,"string length is " + image.length());
-//                Log.e(TAG,"string sent " + image);
-
-                //Getting Image Name
-                String name = editTextName.getText().toString().trim();
-
                 //Creating parameters
                 Map<String,String> params = new Hashtable<String, String>();
 
                 //Adding parameters
                 params.put(KEY_IMAGE, image);
-                params.put(KEY_NAME, name);
 
                 //returning parameters
                 return params;
@@ -189,11 +153,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onErrorResponse(VolleyError error) {
         Log.e(TAG, error.toString());
+        //Dismissing the progress dialog
+        loading.dismiss();
+
+        //Showing toast
+//        Toast.makeText(MainActivity.this, error.getMessage().toString(), Toast.LENGTH_LONG).show();
+//        Toast.makeText(MainActivity.this,"something went wrong",Toast.LENGTH_SHORT).show();
 
     }
 
     @Override
     public void onResponse(String response) {
+        //Disimissing the progress dialog
+        loading.dismiss();
+        //Showing toast message of the response
+        Log.d(TAG, "it took " + (System.currentTimeMillis() - start_time ) + " millisecs");
+        saveImage(response);
 
     }
 
@@ -219,9 +194,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void saveImage(String image) {
         byte[] decodedString = Base64.decode(image, Base64.DEFAULT);
         Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+        imageView.setImageBitmap(decodedByte);
         FileOutputStream out = null;
         try {
-            out = new FileOutputStream("/sdcard/Download/received_and_decoded_image.png");
+            out = new FileOutputStream("/sdcard/Download/received_and_decoded_image.jpg");
             decodedByte.compress(Bitmap.CompressFormat.PNG, 100, out); // bmp is your Bitmap instance
             // PNG is a lossless format, the compression factor (100) is ignored
         } catch (Exception e) {
